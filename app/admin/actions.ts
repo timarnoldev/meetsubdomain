@@ -16,6 +16,10 @@ async function requireAuth() {
   return session;
 }
 
+export async function getBaseUrl() {
+  return process.env.BETTER_AUTH_URL || "http://localhost:3000";
+}
+
 export async function getUsers() {
   await requireAuth();
   const users = await db

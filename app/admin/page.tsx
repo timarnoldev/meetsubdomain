@@ -44,6 +44,7 @@ import {
   getApiKeys,
   createApiKey,
   deleteApiKey,
+  getBaseUrl,
 } from "./actions";
 import {
   KeyRound,
@@ -100,6 +101,8 @@ export default function AdminPage() {
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedMeetId, setCopiedMeetId] = useState<string | null>(null);
+  const [baseUrl, setBaseUrl] = useState("");
   const [showPast, setShowPast] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
@@ -108,6 +111,7 @@ export default function AdminPage() {
     loadUsers();
     loadMeets();
     loadApiKeys();
+    getBaseUrl().then(setBaseUrl);
   }, []);
 
   async function loadUsers() {
@@ -448,9 +452,29 @@ export default function AdminPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                            {m.slug || m.id}
-                          </code>
+                          <div className="flex items-center gap-1">
+                            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                              {m.slug || m.id}
+                            </code>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              title="Copy link"
+                              onClick={() => {
+                                const link = `${baseUrl}/${m.slug || m.id}`;
+                                navigator.clipboard.writeText(link);
+                                setCopiedMeetId(m.id);
+                                setTimeout(() => setCopiedMeetId(null), 2000);
+                              }}
+                            >
+                              {copiedMeetId === m.id ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(m.meetingTime).toLocaleString()}
