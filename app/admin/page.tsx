@@ -44,6 +44,9 @@ import {
   getApiKeys,
   createApiKey,
   deleteApiKey,
+  getCalendarTokens,
+  createCalendarToken,
+  deleteCalendarToken,
   getBaseUrl,
 } from "./actions";
 import {
@@ -57,6 +60,7 @@ import {
   Key,
   Copy,
   Check,
+  Calendar,
 } from "lucide-react";
 
 type User = {
@@ -83,6 +87,13 @@ type ApiKey = {
   createdAt: Date;
 };
 
+type CalendarToken = {
+  id: string;
+  name: string;
+  token: string;
+  createdAt: Date;
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
@@ -100,6 +111,11 @@ export default function AdminPage() {
   const [deleteKeyOpen, setDeleteKeyOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null);
   const [newKey, setNewKey] = useState<string | null>(null);
+  const [calendarTokens, setCalendarTokens] = useState<CalendarToken[]>([]);
+  const [createCalTokenOpen, setCreateCalTokenOpen] = useState(false);
+  const [deleteCalTokenOpen, setDeleteCalTokenOpen] = useState(false);
+  const [selectedCalToken, setSelectedCalToken] = useState<CalendarToken | null>(null);
+  const [copiedCalUrl, setCopiedCalUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedMeetId, setCopiedMeetId] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState("");
@@ -111,6 +127,7 @@ export default function AdminPage() {
     loadUsers();
     loadMeets();
     loadApiKeys();
+    loadCalendarTokens();
     getBaseUrl().then(setBaseUrl);
   }, []);
 
@@ -127,6 +144,39 @@ export default function AdminPage() {
   async function loadApiKeys() {
     const data = await getApiKeys();
     setApiKeys(data);
+  }
+
+  async function loadCalendarTokens() {
+    const data = await getCalendarTokens();
+    setCalendarTokens(data);
+  }
+
+  async function handleCreateCalendarToken(formData: FormData) {
+    setLoading(true);
+    clearMessage();
+    const name = formData.get("calTokenName") as string;
+    const result = await createCalendarToken(name);
+    if (result.error) {
+      setMessage({ text: result.error, type: "error" });
+    } else {
+      setCreateCalTokenOpen(false);
+      loadCalendarTokens();
+    }
+    setLoading(false);
+  }
+
+  async function handleDeleteCalendarToken() {
+    if (!selectedCalToken) return;
+    setLoading(true);
+    const result = await deleteCalendarToken(selectedCalToken.id);
+    if (result.error) {
+      setMessage({ text: result.error, type: "error" });
+    } else {
+      setDeleteCalTokenOpen(false);
+      setSelectedCalToken(null);
+      loadCalendarTokens();
+    }
+    setLoading(false);
   }
 
   async function handleCreateApiKey(formData: FormData) {
@@ -292,6 +342,10 @@ export default function AdminPage() {
               <TabsTrigger value="users">
                 <Users className="mr-1 h-4 w-4" />
                 Users
+              </TabsTrigger>
+              <TabsTrigger value="calendar">
+                <Calendar className="mr-1 h-4 w-4" />
+                Calendar
               </TabsTrigger>
               <TabsTrigger value="api-keys">
                 <Key className="mr-1 h-4 w-4" />
@@ -640,6 +694,132 @@ export default function AdminPage() {
               )}
             </TabsContent>
 
+            {/* Calendar Tab */}
+            <TabsContent value="calendar" className="mt-4">
+              <div className="mb-4 flex justify-end">
+                <Dialog
+                  open={createCalTokenOpen}
+                  onOpenChange={(open) => {
+                    setCreateCalTokenOpen(open);
+                    if (!open) clearMessage();
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-1 h-4 w-4" />
+                      New Calendar Link
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Calendar Subscription</DialogTitle>
+                      <DialogDescription>
+                        Generate a URL you can subscribe to in Google Calendar,
+                        Apple Calendar, or any calendar app.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {message.text && message.type === "error" && (
+                      <p className="text-sm text-red-500">{message.text}</p>
+                    )}
+                    <form
+                      action={handleCreateCalendarToken}
+                      className="flex flex-col gap-4"
+                    >
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="calTokenName">Name</Label>
+                        <Input
+                          id="calTokenName"
+                          name="calTokenName"
+                          placeholder="e.g. My Google Calendar"
+                          required
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <DialogClose asChild>
+                          <Button type="button" variant="outline">
+                            Cancel
+                          </Button>
+                        </DialogClose>
+                        <Button type="submit" disabled={loading}>
+                          {loading ? "Creating..." : "Create"}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {calendarTokens.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  No calendar subscriptions yet. Create one to subscribe in your
+                  calendar app.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {calendarTokens.map((ct) => {
+                    const calUrl = `${baseUrl}/api/calendar/${ct.token}`;
+                    return (
+                      <div
+                        key={ct.id}
+                        className="flex items-center gap-2 rounded-md border p-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{ct.name}</p>
+                          <code className="text-xs text-muted-foreground break-all">
+                            {calUrl}
+                          </code>
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          title="Copy URL"
+                          onClick={() => {
+                            navigator.clipboard.writeText(calUrl);
+                            setCopiedCalUrl(ct.id);
+                            setTimeout(() => setCopiedCalUrl(null), 2000);
+                          }}
+                        >
+                          {copiedCalUrl === ct.id ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Delete"
+                          onClick={() => {
+                            setSelectedCalToken(ct);
+                            setDeleteCalTokenOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="mt-4 rounded-md border border-dashed p-4">
+                <p className="text-sm font-medium mb-2">How to subscribe</p>
+                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Copy the calendar URL above</li>
+                  <li>
+                    <strong>Google Calendar:</strong> Settings → Add calendar →
+                    From URL → Paste the URL
+                  </li>
+                  <li>
+                    <strong>Apple Calendar:</strong> File → New Calendar
+                    Subscription → Paste the URL
+                  </li>
+                  <li>
+                    <strong>Outlook:</strong> Add calendar → Subscribe from web →
+                    Paste the URL
+                  </li>
+                </ol>
+              </div>
+            </TabsContent>
+
             {/* API Keys Tab */}
             <TabsContent value="api-keys" className="mt-4">
               <div className="mb-4 flex justify-end">
@@ -962,6 +1142,37 @@ export default function AdminPage() {
             <Button
               variant="destructive"
               onClick={handleDeleteMeet}
+              disabled={loading}
+            >
+              {loading ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Calendar Token Dialog */}
+      <Dialog
+        open={deleteCalTokenOpen}
+        onOpenChange={(open) => {
+          setDeleteCalTokenOpen(open);
+          if (!open) setSelectedCalToken(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Calendar Subscription</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{selectedCalToken?.name}&quot;?
+              Any calendar apps using this link will stop updating.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteCalendarToken}
               disabled={loading}
             >
               {loading ? "Deleting..." : "Delete"}

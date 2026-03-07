@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { user, account, meet, apiKey } from "@/db/schema";
+import { user, account, meet, apiKey, calendarToken } from "@/db/schema";
 import crypto from "crypto";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -218,6 +218,52 @@ export async function deleteApiKey(id: string) {
   } catch (e: unknown) {
     const message =
       e instanceof Error ? e.message : "Failed to delete API key";
+    return { error: message };
+  }
+}
+
+export async function getCalendarTokens() {
+  await requireAuth();
+  return db
+    .select({
+      id: calendarToken.id,
+      name: calendarToken.name,
+      token: calendarToken.token,
+      createdAt: calendarToken.createdAt,
+    })
+    .from(calendarToken)
+    .orderBy(calendarToken.createdAt);
+}
+
+export async function createCalendarToken(name: string) {
+  await requireAuth();
+
+  if (!name) {
+    return { error: "Name is required" };
+  }
+
+  const id = crypto.randomUUID();
+  const token = crypto.randomBytes(32).toString("hex");
+
+  try {
+    await db.insert(calendarToken).values({ id, name, token });
+    return { success: true, token };
+  } catch (e: unknown) {
+    const message =
+      e instanceof Error ? e.message : "Failed to create calendar token";
+    return { error: message };
+  }
+}
+
+export async function deleteCalendarToken(id: string) {
+  await requireAuth();
+
+  try {
+    await db.delete(calendarToken).where(eq(calendarToken.id, id));
+    return { success: true };
+  } catch (e: unknown) {
+    const message =
+      e instanceof Error ? e.message : "Failed to delete calendar token";
     return { error: message };
   }
 }
