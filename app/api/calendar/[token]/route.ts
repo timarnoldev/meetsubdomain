@@ -62,6 +62,7 @@ export async function GET(
       }
       if (url) {
         lines.push(`URL:${url}`);
+        lines.push(`LOCATION:${escapeICS(url)}`);
       }
 
       lines.push(
