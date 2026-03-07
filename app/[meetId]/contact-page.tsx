@@ -30,7 +30,7 @@ export default function ContactPage({ resolveUrl }: { resolveUrl: string }) {
 
   useEffect(() => {
     window.open(resolveUrl, "_blank");
-    const timer = setTimeout(() => setShowContact(true), 120_000);
+    const timer = setTimeout(() => setShowContact(true), 30_000);
     return () => clearTimeout(timer);
   }, [resolveUrl]);
 
