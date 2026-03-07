@@ -1,6 +1,11 @@
+import type { Metadata } from "next"
 import { Geist, Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
+
+export const metadata: Metadata = {
+  title: "Meet with Tim",
+}
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 
