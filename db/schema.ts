@@ -98,6 +98,7 @@ export const calendarToken = pgTable("calendar_token", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
