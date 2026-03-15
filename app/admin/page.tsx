@@ -243,7 +243,7 @@ export default function AdminPage() {
     clearMessage();
     const resolveUrl = formData.get("resolveUrl") as string;
     const showContactPage = formData.get("showContactPage") === "on";
-    const meetingTime = formData.get("meetingTime") as string;
+    const meetingTime = new Date(formData.get("meetingTime") as string).toISOString();
     const name = formData.get("meetName") as string;
     const notes = formData.get("notes") as string;
     const slug = formData.get("slug") as string;
@@ -263,7 +263,7 @@ export default function AdminPage() {
     clearMessage();
     const resolveUrl = formData.get("resolveUrl") as string;
     const showContactPage = formData.get("showContactPage") === "on";
-    const meetingTime = formData.get("meetingTime") as string;
+    const meetingTime = new Date(formData.get("meetingTime") as string).toISOString();
     const name = formData.get("meetName") as string;
     const notes = formData.get("notes") as string;
     const slug = formData.get("slug") as string;
@@ -1075,9 +1075,11 @@ export default function AdminPage() {
                 type="datetime-local"
                 defaultValue={
                   selectedMeet?.meetingTime
-                    ? new Date(selectedMeet.meetingTime)
-                        .toISOString()
-                        .slice(0, 16)
+                    ? (() => {
+                        const d = new Date(selectedMeet.meetingTime);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      })()
                     : ""
                 }
                 required

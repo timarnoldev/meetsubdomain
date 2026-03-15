@@ -32,6 +32,14 @@ export async function PUT(
   if (!resolveUrl) return badRequest("resolveUrl is required");
   if (!meetingTime) return badRequest("meetingTime is required");
 
+  const parsedTime = new Date(meetingTime);
+  if (isNaN(parsedTime.getTime())) {
+    return badRequest("meetingTime must be a valid ISO 8601 date string (e.g. 2026-04-15T14:00:00Z or 2026-04-15T14:00:00+02:00)");
+  }
+  if (typeof meetingTime === "string" && !(/Z|[+-]\d{2}:\d{2}$/.test(meetingTime))) {
+    return badRequest("meetingTime must include timezone info (e.g. 2026-04-15T14:00:00Z or 2026-04-15T14:00:00+02:00)");
+  }
+
   const [existing] = await db.select().from(meet).where(eq(meet.id, id));
   if (!existing) {
     return Response.json({ error: "Not found" }, { status: 404 });
@@ -45,7 +53,7 @@ export async function PUT(
       notes: notes || null,
       resolveUrl,
       showContactPage: showContactPage ?? false,
-      meetingTime: new Date(meetingTime),
+      meetingTime: parsedTime,
     })
     .where(eq(meet.id, id));
 
